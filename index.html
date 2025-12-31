@@ -14,7 +14,16 @@
   <!-- Dependências: Purify para Segurança e PostCSS para Scoping -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/postcss-selector-parser@7.1.1/dist/index.umd.js"></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050505">
+<link rel="apple-touch-icon" href="icon-192.png">
 
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('Service Worker Registered'));
+  }
+</script>
   <style>
     :root {
       --bg: #050505;
