@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>DUAL // UNO — Orbital Core</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#050505">
+
+  <!-- Fontes e Ícones -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;600;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Dependências: Purify para Segurança e PostCSS para Scoping -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.7/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/postcss-selector-parser@7.1.1/dist/index.umd.js"></script>
+
+  <style>
+    :root {
+      --bg: #050505;
+      --surface: #0c0c0e;
+      --border: rgba(255,255,255,0.08);
+      --accent: #00f2ff;
+      --purple: #bd00ff;
+      --warn: #ff4d4d;
+      --gold: #ffd700;
+      --font-ui: 'Inter', sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+      --ease: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    body {
+      margin: 0; padding: 0; min-height: 100vh;
+      background: var(--bg); color: #fff; font-family: var(--font-ui);
+      display: flex; flex-direction: column; align-items: center;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 50%, #111118 0%, #000 100%),
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    /* ==== NUCLEUS (Orbital UI) ==== */
+    .nucleus-container {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5000; transition: all 0.7s var(--ease-elastic);
+      display: flex; flex-direction: column; align-items: center; gap: 15px;
+    }
+    body.active .nucleus-container { top: 60px; transform: translate(-50%, 0) scale(0.8); }
+
+    .nucleus {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: #000; border: 2px solid #222;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      transition: 0.3s;
+    }
+    .nucleus:hover { border-color: var(--accent); box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); }
+    
+    .nucleus-ring {
+      position: absolute; inset: -8px; border: 1px solid rgba(0,242,255,0.1);
+      border-radius: 50%; border-top-color: var(--accent);
+      animation: spin 3s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Vibe 3-6-9 Pulse */
+    .vibe-pulse {
+      position: absolute; inset: -4px; border-radius: 50%;
+      border: 2px solid var(--gold); opacity: 0;
+    }
+    body.tesla-vibe .vibe-pulse { animation: tesla-ring 2s infinite; opacity: 1; }
+    @keyframes tesla-ring {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .nucleus-label {
+      font-family: var(--font-code); font-size: 0.65rem; color: #555;
+      text-transform: uppercase; letter-spacing: 2px;
+    }
+    body.active .nucleus-label { opacity: 0; }
+
+    /* ==== CONTENT CONTAINER ==== */
+    .uno-app {
+      width: 100%; max-width: 500px; padding: 20px;
+      margin-top: 140px; opacity: 0; transform: translateY(30px);
+      transition: all 0.6s var(--ease); pointer-events: none;
+      display: flex; flex-direction: column; gap: 15px;
+    }
+    body.active .uno-app { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+    /* ==== CORE CARDS ==== */
+    .glass-card {
+      background: rgba(15, 15, 20, 0.7); backdrop-filter: blur(25px);
+      border: 1px solid var(--border); border-radius: 28px;
+      padding: 24px; position: relative; overflow: hidden;
+    }
+    .glass-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    }
+
+    .header-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+    .brand { font-weight: 900; font-size: 1.2rem; letter-spacing: -1px; }
+    .brand span { font-weight: 200; opacity: 0.6; }
+    
+    .clock-section { text-align: right; font-family: var(--font-code); }
+    .clock-time { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .clock-date { font-size: 0.6rem; color: #555; }
+
+    /* ==== INPUTS & BUTTONS ==== */
+    .input-group { position: relative; margin-bottom: 12px; }
+    .main-input {
+      width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+      padding: 16px 20px; border-radius: 16px; color: #fff;
+      font-family: var(--font-code); transition: 0.3s;
+    }
+    .main-input:focus { border-color: var(--accent); background: #000; }
+
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      flex: 1; min-width: 100px; height: 48px; border-radius: 14px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      color: rgba(255,255,255,0.7); font-size: 0.75rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; transition: 0.2s; text-transform: uppercase;
+    }
+    .btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,242,255,0.05); }
+    .btn.primary { background: #fff; color: #000; border: none; }
+    
+    /* ==== MODULES AREA ==== */
+    .modules-container { display: flex; flex-direction: column; gap: 10px; }
+    .module-item {
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+      border-radius: 18px; overflow: hidden; transition: 0.3s;
+    }
+    .module-head {
+      padding: 12px 18px; display: flex; justify-content: space-between;
+      align-items: center; cursor: pointer;
+    }
+    .module-head:hover { background: rgba(255,255,255,0.03); }
+    .module-body { max-height: 0; overflow: hidden; transition: max-height 0.4s var(--ease); }
+    .module-item.open .module-body { max-height: 1000px; padding: 15px; border-top: 1px solid var(--border); }
+
+    .code-editor {
+      width: 100%; height: 150px; background: #000; color: #0f0;
+      font-family: var(--font-code); font-size: 0.8rem; padding: 12px;
+      border: 1px solid #222; border-radius: 10px; resize: none;
+    }
+
+    /* ==== RUNTIME OVERLAY ==== */
+    #runtime-view {
+      position: fixed; inset: 0; background: #000; z-index: 6000;
+      transform: translateY(100%); transition: 0.5s var(--ease);
+      display: flex; flex-direction: column;
+    }
+    #runtime-view.visible { transform: translateY(0); }
+    .runtime-header {
+      padding: 15px 20px; border-bottom: 1px solid #222;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Injected Content Wrapper */
+    .injected-wrapper { margin-top: 10px; padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.2); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+  </style>
+</head>
+<body id="mainBody">
+
+  <!-- ORBITAL NUCLEUS -->
+  <div class="nucleus-container">
+    <div class="nucleus" id="masterNucleus" onclick="app.toggle()">
+      <div class="vibe-pulse"></div>
+      <div class="nucleus-ring"></div>
+      <div id="nucleusIcon"><i data-lucide="zap" color="white"></i></div>
+    </div>
+    <span class="nucleus-label" id="nucleusStatus">Idle</span>
+  </div>
+
+  <!-- RUNTIME (Full Preview) -->
+  <div id="runtime-view">
+    <div class="runtime-header">
+      <span style="font-family:var(--font-code); font-size:0.7rem; color:var(--accent)">RUNTIME EXECUTOR</span>
+      <button class="btn" style="width:40px; min-width:auto" onclick="app.closeRuntime()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div id="iframeContainer" style="flex:1; background:#fff"></div>
+  </div>
+
+  <!-- APP CONTENT -->
+  <div class="uno-app">
+    
+    <div class="glass-card">
+      <div class="header-info">
+        <div class="brand">DUAL <span>// UNO</span></div>
+        <div class="clock-section">
+          <div class="clock-time" id="time">00:00</div>
+          <div class="clock-date" id="date">--/--/--</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <input type="text" class="main-input" id="userName" placeholder="Identidade do Operador..." autocomplete="off">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="rawBtn" onclick="app.toggleRaw()">
+          <i data-lucide="shield"></i> <span id="rawLabel">Safe</span>
+        </button>
+        <button class="btn" onclick="app.speakIdentity()">
+          <i data-lucide="mic"></i> Voz
+        </button>
+        <button class="btn" onclick="app.toggleModule('creator')">
+          <i data-lucide="plus"></i> Novo
+        </button>
+      </div>
+
+      <!-- Módulo Criador -->
+      <div class="module-item" id="mod-creator" style="margin-top:15px; display:none">
+        <div class="module-head" onclick="this.parentElement.classList.toggle('open')">
+          <span style="font-size:0.8rem">Novo Módulo / Stack</span>
+          <i data-lucide="chevron-down" size="16"></i>
+        </div>
+        <div class="module-body">
+          <textarea id="codeIn" class="code-editor" placeholder="Cole seu HTML/CSS aqui..."></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <input type="text" id="titleIn" placeholder="Título" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:0 10px; border-radius:8px">
+            <button class="btn primary" onclick="app.saveStack()">Cristalizar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo de CSS Live -->
+    <div class="glass-card">
+      <div class="module-head" style="padding:0; margin-bottom:10px">
+        <span style="font-size:0.75rem; font-weight:700">EDITOR DE AMBIENTE (CSS)</span>
+        <i data-lucide="palette" size="14"></i>
+      </div>
+      <textarea id="cssIn" class="code-editor" style="height:80px; color:var(--accent)" placeholder="Ex: body { background: red; }"></textarea>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn" onclick="app.applyCss()">Aplicar</button>
+        <button class="btn" onclick="app.resetCss()">Reset</button>
+      </div>
+    </div>
+
+    <!-- VAULT / STACKS -->
+    <div id="vault" class="modules-container"></div>
+
+  </div>
+
+  <script>
+    // Core Logic
+    const app = {
+      state: {
+        active: false,
+        raw: false,
+        stacks: JSON.parse(localStorage.getItem('uno_vault_v2') || '[]'),
+        user: localStorage.getItem('uno_user') || ''
+      },
+
+      init() {
+        lucide.createIcons();
+        this.updateClock();
+        setInterval(() => this.updateClock(), 1000);
+        
+        if (this.state.user) {
+          document.getElementById('userName').value = this.state.user;
+          this.checkTeslaVibe(this.state.user);
+        }
+
+        document.getElementById('userName').addEventListener('input', (e) => {
+          this.state.user = e.target.value;
+          localStorage.setItem('uno_user', this.state.user);
+          this.checkTeslaVibe(this.state.user);
+        });
+
+        this.renderVault();
+        this.applyRawUI();
+        
+        // Carrega CSS salvo
+        const savedCss = localStorage.getItem('uno_css');
+        if(savedCss) {
+          document.getElementById('cssIn').value = savedCss;
+          this.applyCss();
+        }
+      },
+
+      toggle() {
+        this.state.active = !this.state.active;
+        document.body.classList.toggle('active', this.state.active);
+        document.getElementById('nucleusStatus').innerText = this.state.active ? 'Active' : 'Idle';
+        this.speak(this.state.active ? "Sistema Dual On" : "Modo Furtivo");
+      },
+
+      toggleRaw() {
+        this.state.raw = !this.state.raw;
+        this.applyRawUI();
+      },
+
+      applyRawUI() {
+        const btn = document.getElementById('rawBtn');
+        const label = document.getElementById('rawLabel');
+        btn.classList.toggle('active', this.state.raw);
+        label.innerText = this.state.raw ? 'RAW' : 'SAFE';
+        this.speak(this.state.raw ? "Protocolo Raw Ativado" : "Filtros de Segurança ativos");
+      },
+
+      updateClock() {
+        const now = new Date();
+        document.getElementById('time').innerText = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        document.getElementById('date').innerText = now.toLocaleDateString('pt-BR');
+      },
+
+      checkTeslaVibe(name) {
+        if(!name) return document.body.classList.remove('tesla-vibe');
+        const sum = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        let root = sum;
+        while(root > 9) root = String(root).split('').reduce((a, b) => a + Number(b), 0);
+        
+        if([3, 6, 9].includes(root)) {
+          document.body.classList.add('tesla-vibe');
+        } else {
+          document.body.classList.remove('tesla-vibe');
+        }
+      },
+
+      toggleModule(id) {
+        const el = document.getElementById(`mod-${id}`);
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        lucide.createIcons();
+      },
+
+      saveStack() {
+        const content = document.getElementById('codeIn').value;
+        const title = document.getElementById('titleIn').value || "Módulo s/ Nome";
+        if(!content) return;
+
+        this.state.stacks.unshift({
+          id: Date.now(),
+          title,
+          content,
+          date: new Date().toLocaleString()
+        });
+
+        localStorage.setItem('uno_vault_v2', JSON.stringify(this.state.stacks));
+        document.getElementById('codeIn').value = '';
+        this.renderVault();
+        this.toggleModule('creator');
+        this.speak("Módulo cristalizado");
+      },
+
+      renderVault() {
+        const container = document.getElementById('vault');
+        if(this.state.stacks.length === 0) {
+          container.innerHTML = '<div style="text-align:center; opacity:0.2; font-size:0.7rem; padding:20px">VAULT VAZIO</div>';
+          return;
+        }
+
+        container.innerHTML = this.state.stacks.map(s => `
+          <div class="module-item" id="stack-${s.id}">
+            <div class="module-head" onclick="this.parentElement.classList.toggle('open')">
+              <div style="display:flex; flex-direction:column">
+                <span style="font-size:0.8rem; font-weight:700">${s.title}</span>
+                <span style="font-size:0.55rem; color:#555">${s.date}</span>
+              </div>
+              <i data-lucide="chevron-down" size="14"></i>
+            </div>
+            <div class="module-body">
+              <div class="btn-row" style="margin-bottom:10px">
+                <button class="btn" style="height:32px" onclick="app.runStack(${s.id})">RODAR</button>
+                <button class="btn" style="height:32px" onclick="app.deleteStack(${s.id})">APAGAR</button>
+              </div>
+              <textarea class="code-editor" readonly style="height:100px; font-size:0.7rem; opacity:0.5">${s.content}</textarea>
+            </div>
+          </div>
+        `).join('');
+        lucide.createIcons();
+      },
+
+      runStack(id) {
+        const s = this.state.stacks.find(x => x.id === id);
+        const container = document.getElementById('iframeContainer');
+        const view = document.getElementById('runtime-view');
+        
+        const iframe = document.createElement('iframe');
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "none";
+        
+        if(!this.state.raw) {
+          iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals');
+        }
+
+        container.innerHTML = '';
+        container.appendChild(iframe);
+        
+        // Purify content if needed
+        const cleanContent = this.state.raw ? s.content : DOMPurify.sanitize(s.content, { ADD_TAGS: ["script", "style"], ADD_ATTR: ["onclick"] });
+        
+        iframe.srcdoc = cleanContent;
+        view.classList.add('visible');
+      },
+
+      closeRuntime() {
+        document.getElementById('runtime-view').classList.remove('visible');
+        setTimeout(() => { document.getElementById('iframeContainer').innerHTML = ''; }, 500);
+      },
+
+      deleteStack(id) {
+        if(!confirm("Deletar módulo?")) return;
+        this.state.stacks = this.state.stacks.filter(s => s.id !== id);
+        localStorage.setItem('uno_vault_v2', JSON.stringify(this.state.stacks));
+        this.renderVault();
+      },
+
+      applyCss() {
+        const css = document.getElementById('cssIn').value;
+        let styleTag = document.getElementById('injected-env-css');
+        if(!styleTag) {
+          styleTag = document.createElement('style');
+          styleTag.id = 'injected-env-css';
+          document.head.appendChild(styleTag);
+        }
+        styleTag.textContent = css;
+        localStorage.setItem('uno_css', css);
+      },
+
+      resetCss() {
+        document.getElementById('cssIn').value = '';
+        this.applyCss();
+      },
+
+      speak(text) {
+        if(!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'pt-BR'; u.rate = 1.1;
+        window.speechSynthesis.speak(u);
+      },
+
+      speakIdentity() {
+        const name = this.state.user || "Operador Desconhecido";
+        this.speak(`Identidade confirmada como ${name}.`);
+      }
+    };
+
+    window.onload = () => app.init();
+  </script>
+</body>
+</html>
+
